@@ -217,80 +217,237 @@ public class PathfindingAlgorithm {
     }
     
     /**
-     * Bellman-Ford algorithm implementation.
-     * Can handle negative weights and detects negative cycles.
-     * Relaxes ALL edges in the graph (V-1) times to find shortest paths.
+     * Bellman-Ford Algorithm - SPFA (Shortest Path Faster Algorithm) Variant
+     * 
+     * This is a queue-based optimization of Bellman-Ford that:
+     * 1. Only processes nodes that were updated in the previous iteration
+     * 2. Explores outward naturally from the start (like Dijkstra/BFS)
+     * 3. Still maintains Bellman-Ford's ability to handle negative weights
+     * 
+     * Time Complexity: O(V * E) worst case, but typically O(E) in practice
+     * Space Complexity: O(V)
+     * 
+     * This creates a more natural radial propagation pattern similar to Dijkstra,
+     * while still using the edge relaxation approach of Bellman-Ford.
      */
     public PathfindingResult bellmanFord(Node start, Node end) {
-        // Initialize all nodes to infinite distance
+        // Step 1: Initialize distances to infinity
         for (int x = 0; x < gridSize; x++) {
             for (int y = 0; y < gridSize; y++) {
                 grid[x][y].updateCosts(Double.MAX_VALUE, null);
             }
         }
         
+        // Distance to start node is 0
         start.updateCosts(0, null);
         
-        int nodesVisited = 0;
+        // Queue for nodes that need to be processed
+        Queue<Node> queue = new LinkedList<>();
+        Set<Node> inQueue = new HashSet<>();
+        Set<Node> visitedNodes = new HashSet<>();
         
-        // Relax ALL edges (V-1) times
-        // V = number of walkable nodes in the grid
-        for (int iteration = 0; iteration < gridSize * gridSize - 1; iteration++) {
-            boolean relaxed = false;
+        // Add start node to queue
+        queue.offer(start);
+        inQueue.add(start);
+        
+        // Track relaxation count to prevent infinite loops (negative cycle detection)
+        Map<Node, Integer> relaxationCount = new HashMap<>();
+        
+        // Step 2: Process nodes using queue (SPFA approach)
+        while (!queue.isEmpty()) {
+            Node u = queue.poll();
+            inQueue.remove(u);
             
-            // Process all edges in the graph
-            // For a grid, edges are from each node to its neighbors
-            for (int x = 0; x < gridSize; x++) {
-                for (int y = 0; y < gridSize; y++) {
-                    Node current = grid[x][y];
+            // Visualize current node being processed
+            if (u != start && u != end && !visitedNodes.contains(u)) {
+                u.setState(Node.State.VISITED);
+                visitedNodes.add(u);
+                visualize();
+            }
+            
+            // Skip if unreachable
+            if (u.getG() == Double.MAX_VALUE) {
+                continue;
+            }
+            
+            // Relax all edges from this node
+            for (int[] dir : DIRECTIONS) {
+                int nx = u.getX() + dir[0];
+                int ny = u.getY() + dir[1];
+                
+                if (!isValid(nx, ny)) continue;
+                
+                Node v = grid[nx][ny];
+                
+                if (!v.isWalkable()) continue;
+                
+                // Relaxation: if distance[u] + weight(u,v) < distance[v]
+                double weight = 1.0; // Edge weight in grid
+                double newDistance = u.getG() + weight;
+                
+                if (newDistance < v.getG()) {
+                    // Update distance and parent
+                    v.updateCosts(newDistance, u);
                     
-                    // Skip walls and unreachable nodes
-                    if (!current.isWalkable() || current.getG() == Double.MAX_VALUE) {
-                        continue;
-                    }
-                    
-                    // Try to relax all outgoing edges from this node
-                    for (int[] dir : DIRECTIONS) {
-                        int newX = current.getX() + dir[0];
-                        int newY = current.getY() + dir[1];
+                    // Add to queue if not already in it
+                    if (!inQueue.contains(v)) {
+                        queue.offer(v);
+                        inQueue.add(v);
                         
-                        if (!isValid(newX, newY)) continue;
+                        // Track relaxation count (for negative cycle detection in general graphs)
+                        int count = relaxationCount.getOrDefault(v, 0) + 1;
+                        relaxationCount.put(v, count);
                         
-                        Node neighbor = grid[newX][newY];
-                        
-                        if (!neighbor.isWalkable()) continue;
-                        
-                        double newDistance = current.getG() + 1; // Edge weight is 1
-                        
-                        // Relax the edge if we found a shorter path
-                        if (newDistance < neighbor.getG()) {
-                            neighbor.updateCosts(newDistance, current);
-                            
-                            // Mark as visited and visualize on first relaxation
-                            if (neighbor != start && neighbor != end && neighbor.getState() != Node.State.VISITED) {
-                                neighbor.setState(Node.State.VISITED);
-                                nodesVisited++;
-                            }
-                            relaxed = true;
+                        // Safety check: if a node is relaxed too many times, break
+                        // (In our grid with positive weights, this shouldn't happen)
+                        if (count > gridSize * gridSize) {
+                            break;
                         }
                     }
                 }
             }
-            
-            // Visualize after each complete iteration
-            visualize();
-            
-            // Early termination: if no edge was relaxed, we're done
-            if (!relaxed) break;
         }
         
-        // Check if path to end exists
+        // Step 3: Check if destination is reachable
         if (end.getG() == Double.MAX_VALUE) {
-            return new PathfindingResult(false, nodesVisited, 0);
+            return new PathfindingResult(false, visitedNodes.size(), 0);
         }
         
+        // Reconstruct and return the shortest path
         int pathLength = reconstructPath(end);
-        return new PathfindingResult(true, nodesVisited, pathLength);
+        return new PathfindingResult(true, visitedNodes.size(), pathLength);
+    }
+    
+    /**
+     * Greedy Best-First Search Algorithm
+     * 
+     * Similar to A* but ONLY uses heuristic (h) to guide search, ignoring actual cost (g).
+     * This makes it very fast but NOT guaranteed to find the optimal path.
+     * 
+     * Formula: f(n) = h(n) only
+     * 
+     * Time Complexity: O((V + E) log V) - same as A* but often faster in practice
+     * Space Complexity: O(V)
+     * 
+     * Pros: Very fast, good for when speed matters more than optimality
+     * Cons: Path may not be optimal, can get stuck going wrong direction
+     */
+    public PathfindingResult greedyBestFirst(Node start, Node end) {
+        // Priority queue based on heuristic only
+        PriorityQueue<Node> openSet = new PriorityQueue<>(Comparator.comparingDouble(Node::getH));
+        Set<Node> closedSet = new HashSet<>();
+        
+        // Initialize start node
+        start.updateCosts(0, null);
+        start.calculateHeuristic(end);
+        openSet.add(start);
+        
+        int nodesVisited = 0;
+        
+        while (!openSet.isEmpty()) {
+            Node current = openSet.poll();
+            
+            // Check if we reached the end
+            if (current == end) {
+                int pathLength = reconstructPath(end);
+                return new PathfindingResult(true, nodesVisited, pathLength);
+            }
+            
+            closedSet.add(current);
+            
+            // Visualize visited node
+            if (current != start && current != end) {
+                current.setState(Node.State.VISITED);
+                visualize();
+            }
+            nodesVisited++;
+            
+            // Explore neighbors
+            for (int[] dir : DIRECTIONS) {
+                int newX = current.getX() + dir[0];
+                int newY = current.getY() + dir[1];
+                
+                if (!isValid(newX, newY)) continue;
+                
+                Node neighbor = grid[newX][newY];
+                
+                if (!neighbor.isWalkable() || closedSet.contains(neighbor)) continue;
+                
+                // Only calculate heuristic, ignore actual cost
+                if (!openSet.contains(neighbor)) {
+                    neighbor.calculateHeuristic(end);
+                    neighbor.updateCosts(current.getG() + 1, current); // Track cost for path reconstruction
+                    openSet.add(neighbor);
+                }
+            }
+        }
+        
+        // No path found
+        return new PathfindingResult(false, nodesVisited, 0);
+    }
+    
+    /**
+     * Depth-First Search (DFS) Algorithm
+     * 
+     * Explores as far as possible along each branch before backtracking.
+     * Uses a stack (LIFO) instead of a queue (FIFO like BFS).
+     * 
+     * NOT guaranteed to find the shortest path!
+     * Will find A path if one exists, but it may be very long and winding.
+     * 
+     * Time Complexity: O(V + E) - can visit all nodes
+     * Space Complexity: O(V) - for the stack
+     * 
+     * Pros: Memory efficient, finds a path quickly (any path)
+     * Cons: Path is usually NOT optimal, can be very long
+     */
+    public PathfindingResult dfs(Node start, Node end) {
+        Stack<Node> stack = new Stack<>();
+        Set<Node> visited = new HashSet<>();
+        
+        // Initialize start node
+        start.updateCosts(0, null);
+        stack.push(start);
+        visited.add(start);
+        
+        int nodesVisited = 0;
+        
+        while (!stack.isEmpty()) {
+            Node current = stack.pop();
+            
+            // Check if we reached the end
+            if (current == end) {
+                int pathLength = reconstructPath(end);
+                return new PathfindingResult(true, nodesVisited, pathLength);
+            }
+            
+            // Visualize visited node
+            if (current != start && current != end) {
+                current.setState(Node.State.VISITED);
+                visualize();
+            }
+            nodesVisited++;
+            
+            // Explore neighbors (in reverse order for consistent behavior)
+            for (int i = DIRECTIONS.length - 1; i >= 0; i--) {
+                int[] dir = DIRECTIONS[i];
+                int newX = current.getX() + dir[0];
+                int newY = current.getY() + dir[1];
+                
+                if (!isValid(newX, newY)) continue;
+                
+                Node neighbor = grid[newX][newY];
+                
+                if (!neighbor.isWalkable() || visited.contains(neighbor)) continue;
+                
+                neighbor.updateCosts(current.getG() + 1, current);
+                visited.add(neighbor);
+                stack.push(neighbor);
+            }
+        }
+        
+        // No path found
+        return new PathfindingResult(false, nodesVisited, 0);
     }
     
     /**

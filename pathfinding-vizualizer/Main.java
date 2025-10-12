@@ -23,7 +23,7 @@ public class Main extends JFrame {
     private DrawMode drawMode = DrawMode.NONE;
     
     public Main() {
-        setTitle("Pathfinding Visualizer - A* & Dijkstra");
+        setTitle("Pathfinding Visualizer - 6 Algorithms");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
         
@@ -68,11 +68,14 @@ public class Main extends JFrame {
         panel.setBackground(new Color(240, 240, 240));
         panel.setPreferredSize(new Dimension(WINDOW_SIZE, 80));
         
-        // Algorithm selection
+        // Algorithm selection (ordered by speed: fastest to slowest)
         JLabel algoLabel = new JLabel("Algorithm:");
         algoLabel.setFont(new Font("Arial", Font.BOLD, 12));
         
-        JComboBox<String> algoCombo = new JComboBox<>(new String[]{"A*", "Dijkstra", "BFS", "Bellman-Ford"});
+        JComboBox<String> algoCombo = new JComboBox<>(new String[]{
+            "Greedy Best-First", "A*", "Dijkstra", "BFS", "Bellman-Ford", "DFS"
+        });
+        algoCombo.setSelectedItem("A*"); // Default to A*
         algoCombo.addActionListener(e -> selectedAlgorithm = (String) algoCombo.getSelectedItem());
         
         // Speed control
@@ -130,6 +133,9 @@ public class Main extends JFrame {
             
             PathfindingResult result;
             switch (selectedAlgorithm) {
+                case "Greedy Best-First":
+                    result = pathfinder.greedyBestFirst(startNode, endNode);
+                    break;
                 case "A*":
                     result = pathfinder.aStar(startNode, endNode);
                     break;
@@ -141,6 +147,9 @@ public class Main extends JFrame {
                     break;
                 case "Bellman-Ford":
                     result = pathfinder.bellmanFord(startNode, endNode);
+                    break;
+                case "DFS":
+                    result = pathfinder.dfs(startNode, endNode);
                     break;
                 default:
                     result = pathfinder.aStar(startNode, endNode);

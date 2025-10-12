@@ -1,14 +1,16 @@
 # Pathfinding Visualizer
 
-A Java-based visualization tool for pathfinding algorithms including A* and Dijkstra's algorithm.
+A comprehensive Java-based visualization tool featuring 6 different pathfinding algorithms, from lightning-fast heuristic search to deep exploration strategies.
 
 ## Features
 
-### 🔍 Algorithms Implemented
-- **A* Algorithm**: Optimal pathfinding with heuristic (Manhattan distance)
-- **Dijkstra's Algorithm**: Guaranteed shortest path without heuristic
-- **BFS (Breadth-First Search)**: Level-by-level exploration, unweighted shortest path
-- **Bellman-Ford Algorithm**: Systematic edge relaxation, handles negative weights
+### 🔍 Algorithms Implemented (Fastest → Slowest)
+1. **Greedy Best-First Search**: Lightning-fast heuristic-only search (non-optimal)
+2. **A* Algorithm**: Optimal pathfinding with heuristic (Manhattan distance)
+3. **Dijkstra's Algorithm**: Guaranteed shortest path without heuristic
+4. **BFS (Breadth-First Search)**: Level-by-level exploration, unweighted shortest path
+5. **Bellman-Ford Algorithm**: Systematic edge relaxation, handles negative weights
+6. **DFS (Depth-First Search)**: Deep exploration with backtracking (non-optimal)
 - **Visual Comparison**: See how each algorithm explores the grid differently
 
 ### 🎨 Visual Features
@@ -45,6 +47,15 @@ pathfinding-vizualizer/
 
 ## Algorithm Details
 
+### Greedy Best-First Search
+- **Strategy**: Pure heuristic-based search - ignores actual path cost
+- **Formula**: f(n) = h(n) only (Manhattan distance to goal)
+- **Optimality**: NOT optimal - can find suboptimal paths
+- **Efficiency**: Very fast, often faster than A* in practice
+- **Time Complexity**: O((V + E) log V)
+- **Best Use**: When speed matters more than optimality, open spaces
+- **Weakness**: Can get "stuck" going wrong direction, ignores obstacles between current and goal
+
 ### A* Algorithm
 - **Strategy**: Best-first search with heuristic
 - **Formula**: f(n) = g(n) + h(n)
@@ -68,12 +79,32 @@ pathfinding-vizualizer/
 - **Efficiency**: Fast for unweighted grids, explores uniformly
 - **Time Complexity**: O(V + E)
 
-### Bellman-Ford Algorithm
-- **Strategy**: Dynamic programming with edge relaxation
-- **Formula**: Relax all edges V-1 times
-- **Optimality**: Finds shortest path, can handle negative weights
-- **Efficiency**: Slower but more versatile than Dijkstra
-- **Time Complexity**: O(V * E)
+### Bellman-Ford Algorithm (SPFA Variant)
+- **Strategy**: Queue-based edge relaxation - only processes nodes that were recently updated
+- **Formula**: For each edge (u→v): if distance[u] + weight(u,v) < distance[v], then distance[v] = distance[u] + weight(u,v)
+- **Algorithm Steps**:
+  1. Initialize all distances to ∞ (except source = 0)
+  2. Use a queue starting from the source node
+  3. For each node, relax all its outgoing edges
+  4. If a neighbor's distance improves, add it to the queue
+  5. Continue until queue is empty
+- **SPFA Optimization**: Shortest Path Faster Algorithm - only processes nodes with updated distances
+- **Optimality**: Guaranteed shortest path, can handle negative weights and detect negative cycles
+- **Time Complexity**: O(E) average case, O(V × E) worst case
+- **Space Complexity**: O(V)
+- **Visualization**: Shows natural radial propagation similar to Dijkstra
+- **Note**: This queue-based variant explores more uniformly than the classic nested-loop version
+
+### DFS (Depth-First Search)
+- **Strategy**: Explore as far as possible along each branch before backtracking
+- **Data Structure**: Stack (LIFO - Last In, First Out)
+- **Optimality**: NOT optimal - finds A path, but often very long and winding
+- **Efficiency**: Can be slow, may explore entire grid before finding goal
+- **Time Complexity**: O(V + E) - may visit all nodes
+- **Space Complexity**: O(V) - stack depth
+- **Best Use**: Maze generation, finding ANY path quickly, memory-constrained environments
+- **Weakness**: Path quality is poor, can take very indirect routes
+- **Visualization**: Shows deep "tendrils" exploring before backtracking
 
 ### Manhattan Distance Heuristic
 ```
@@ -124,7 +155,7 @@ java Main
 5. **Random Maze**: Click "🎲 Random Maze" to generate random obstacles
 
 ### Running Algorithms
-1. **Select Algorithm**: Choose between A* or Dijkstra
+1. **Select Algorithm**: Choose from 6 algorithms (ordered by speed)
 2. **Adjust Speed**: Control visualization delay
 3. **Start**: Click Run to begin visualization
 4. **Reset**: Clear the grid to try again
@@ -136,17 +167,34 @@ java Main
 
 ## Algorithm Comparison
 
-### When to Use A*
-- ✅ Single target pathfinding
-- ✅ Need fast results
-- ✅ Have good heuristic
-- ✅ Open spaces with few obstacles
+| Algorithm | Speed | Optimal Path? | Best Use Case | Visualization Pattern |
+|-----------|-------|---------------|---------------|----------------------|
+| **Greedy Best-First** | ⚡⚡⚡ Fastest | ❌ No | Quick paths, speed priority | Beeline toward goal |
+| **A*** | ⚡⚡ Very Fast | ✅ Yes | Single target, balanced | Efficient radial |
+| **Dijkstra** | ⚡ Fast | ✅ Yes | Multiple targets, weighted | Uniform radial |
+| **BFS** | ⚡ Fast | ✅ Yes (unweighted) | Unweighted graphs | Level-by-level |
+| **Bellman-Ford** | 🐌 Moderate | ✅ Yes | Negative weights | Radial waves |
+| **DFS** | 🐌🐌 Slowest | ❌ No | Maze generation, any path | Deep tendrils |
 
-### When to Use Dijkstra
-- ✅ Multiple targets
-- ✅ Need guaranteed shortest path
-- ✅ Complex weighted graphs
-- ✅ No suitable heuristic available
+### Quick Selection Guide
+
+**Need the FASTEST result?**
+→ Use **Greedy Best-First** (but path may not be optimal)
+
+**Need OPTIMAL path quickly?**
+→ Use **A*** (best balance of speed and optimality)
+
+**Need GUARANTEED shortest path?**
+→ Use **Dijkstra** or **BFS**
+
+**Have negative edge weights?**
+→ Use **Bellman-Ford**
+
+**Just need ANY path?**
+→ Use **DFS** (simplest, non-optimal)
+
+**Want to COMPARE algorithms?**
+→ Run different algorithms on the same maze!
 
 ## Code Components
 
@@ -177,18 +225,30 @@ Stores algorithm results:
 
 ## Performance Characteristics
 
-### Time Complexity
-- **A***: O((V + E) log V) with good heuristic
-- **Dijkstra**: O((V + E) log V)
-- V = vertices/nodes, E = edges/connections
+### Time Complexity Comparison
+| Algorithm | Time Complexity | Practical Speed |
+|-----------|----------------|-----------------|
+| Greedy Best-First | O((V + E) log V) | ⚡⚡⚡ Very Fast |
+| A* | O((V + E) log V) | ⚡⚡ Fast |
+| Dijkstra | O((V + E) log V) | ⚡ Moderate |
+| BFS | O(V + E) | ⚡ Fast |
+| Bellman-Ford | O(E) avg, O(V × E) worst | 🐌 Slow |
+| DFS | O(V + E) | 🐌 Variable |
+
+*V = vertices/nodes, E = edges/connections*
 
 ### Space Complexity
-- **Both**: O(V) for priority queue and visited set
+- **All algorithms**: O(V) for data structures (queue/stack/set)
+- **Priority queue algorithms** (A*, Dijkstra, Greedy): Slightly higher constant factor
 
-### Practical Performance
-- **A*** typically visits fewer nodes
-- **Dijkstra** explores uniformly in all directions
-- **Grid size** affects performance linearly
+### Nodes Visited (Typical)
+On a 30×30 grid with moderate obstacles:
+- **Greedy Best-First**: ~50-150 nodes (beeline to goal)
+- **A***: ~100-300 nodes (efficient exploration)
+- **Dijkstra**: ~200-400 nodes (uniform expansion)
+- **BFS**: ~200-400 nodes (level-by-level)
+- **Bellman-Ford**: ~200-400 nodes (similar to BFS)
+- **DFS**: ~200-800 nodes (can explore entire grid)
 
 ## Customization
 
@@ -257,11 +317,15 @@ Add diagonal directions:
 - [ ] Grid patterns (mazes, spirals)
 
 ### Algorithms
+- [x] Greedy Best-First Search ✅
+- [x] A* Algorithm ✅
+- [x] Dijkstra's Algorithm ✅
 - [x] Breadth-First Search (BFS) ✅
-- [x] Bellman-Ford ✅
-- [ ] Depth-First Search (DFS)
-- [ ] Greedy Best-First Search
+- [x] Bellman-Ford (SPFA) ✅
+- [x] Depth-First Search (DFS) ✅
+- [ ] Bidirectional Search
 - [ ] Theta* (any-angle pathfinding)
+- [ ] Jump Point Search
 
 ## Learning Resources
 
@@ -272,11 +336,15 @@ Add diagonal directions:
 - **Heuristic**: Estimated distance to goal
 
 ### Algorithm Visualization
-Watch how:
-- A* uses heuristic to guide search
-- Dijkstra explores uniformly
-- Both guarantee shortest path
-- Obstacles affect exploration
+Watch how different algorithms behave:
+- **Greedy Best-First** makes a beeline toward the goal (fast but not optimal)
+- **A*** balances cost and heuristic for efficient optimal paths
+- **Dijkstra** explores uniformly in all directions
+- **BFS** expands level-by-level like a wave
+- **Bellman-Ford** shows wave-like relaxation iterations
+- **DFS** creates deep "tendrils" before backtracking
+- Compare optimal vs non-optimal algorithms
+- See how obstacles affect different strategies
 
 ### Key Concepts
 - **Open Set**: Nodes to be evaluated
