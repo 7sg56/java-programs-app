@@ -4,22 +4,6 @@ A collection of Java desktop applications demonstrating algorithms, GUI developm
 
 ## 📂 Projects
 
-### 🧮 Calculator
-**A fully functional GUI calculator with keyboard support**
-
-- Complete arithmetic operations (+, -, ×, ÷)
-- Decimal number handling and keyboard shortcuts
-- Error handling for division by zero
-- Clean separation of UI and business logic
-
-```bash
-cd calculator && ./compile_and_run.sh
-```
-
-[📖 Full Documentation](calculator/README.md)
-
----
-
 ### 🗺️ Pathfinding Visualizer
 **Interactive visualization of 6 pathfinding algorithms with real-time animation**
 
